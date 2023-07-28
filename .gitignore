@@ -1,0 +1,11 @@
+**/*.cer
+**/*.key
+**/*.pem
+**/*.git-credentials
+
+**/.vpn-env
+
+**/settings.xml
+
+**/.vscode
+dev/

@@ -1,0 +1,36 @@
+version: "3.5"
+
+services:
+  devcontainer:
+    image: devcontainer:remote
+    build:
+      context: .
+      dockerfile: dockerfile
+      args:
+        - DEVUSER=${DEVUSER}
+    env_file:
+      - .vpn-env
+    privileged: true
+    # restart: unless-stopped
+    dns:
+      - 1.1.1.1
+    ports:
+      - 3128:3128
+    volumes:
+      - home:/dev/${DEVUSER}
+      - ./certs:/vpn/certs:ro
+      - /var/run/docker.sock:/var/run/docker.sock:rw
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pgrep openconnect || exit 1; curl --fail http://www.google.com || exit 1",
+        ]
+      interval: 4s
+      timeout: 4s
+      retries: 4
+      start_period: 12s
+
+volumes:
+  home:
+    name: devcontainer_home_directory
