@@ -1,6 +1,19 @@
-version: "3.5"
+version: "3"
 
 services:
+  docker:
+    image: docker:24-dind
+    privileged: true
+    restart: unless-stopped
+    environment:
+      - DOCKER_TLS_CERTDIR=/certs
+    volumes:
+      - dind-certs-ca:/certs/ca
+      - dind-certs-client:/certs/client
+    networks:
+      devcontainer:
+        ipv4_address: 172.28.1.1
+
   devcontainer:
     image: devcontainer:remote
     build:
@@ -8,18 +21,26 @@ services:
       dockerfile: dockerfile
       args:
         - DEVUSER=${DEVUSER}
-    env_file:
-      - .vpn-env
     privileged: true
     # restart: unless-stopped
+    env_file:
+      - .vpn-env
+    environment:
+      - DOCKER_HOST=tcp://docker:2376
+      - DOCKER_TLS_VERIFY=1
+      - DOCKER_CERT_PATH=/certs/client
+    networks:
+      - devcontainer
+    extra_hosts:
+      - "docker:172.28.1.1"
     dns:
       - 1.1.1.1
     ports:
       - 3128:3128
     volumes:
-      - home:/dev/${DEVUSER}
+      - projects:/dev/${DEVUSER}/projects
       - ./certs:/vpn/certs:ro
-      - /var/run/docker.sock:/var/run/docker.sock:rw
+      - dind-certs-client:/certs/client:ro
     healthcheck:
       test:
         [
@@ -31,6 +52,18 @@ services:
       retries: 4
       start_period: 12s
 
+networks:
+  devcontainer:
+    name: devcontainer_dind
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.28.0.0/16
+
 volumes:
-  home:
-    name: devcontainer_home_directory
+  projects:
+    name: devcontainer_projects_directory
+  dind-certs-ca:
+    name: devcontainer_dind_certs_ca
+  dind-certs-client:
+    name: devcontainer_dind_certs_client
